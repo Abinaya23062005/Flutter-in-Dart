@@ -1,0 +1,195 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const ToDoApp());
+}
+
+class ToDoApp extends StatelessWidget {
+  const ToDoApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const ToDoListPage(),
+    );
+  }
+}
+
+class ToDoListPage extends StatefulWidget {
+  const ToDoListPage({super.key});
+
+  @override
+  State<ToDoListPage> createState() => _ToDoListPageState();
+}
+
+class _ToDoListPageState extends State<ToDoListPage>
+    with SingleTickerProviderStateMixin {
+  final TextEditingController _controller = TextEditingController();
+  final List<String> _tasks = [];
+
+  // Animation Controller for background
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _addTask() {
+    if (_controller.text.trim().isNotEmpty) {
+      setState(() {
+        _tasks.add(_controller.text.trim());
+        _controller.clear();
+      });
+    }
+  }
+
+  void _removeTask(int index) {
+    setState(() {
+      _tasks.removeAt(index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Neural network animated background
+          AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return CustomPaint(
+                size: MediaQuery.of(context).size,
+                painter: NeuralNetworkPainter(_animationController.value),
+              );
+            },
+          ),
+          // Main content
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const Text(
+                    "AI Themed To-Do List",
+                    style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: "Enter your task...",
+                            hintStyle:
+                                const TextStyle(color: Colors.white70),
+                            filled: true,
+                            fillColor: Colors.black45,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      FloatingActionButton(
+                        onPressed: _addTask,
+                        backgroundColor: Colors.blueAccent,
+                        child: const Icon(Icons.add),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _tasks.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          color: Colors.black54,
+                          child: ListTile(
+                            title: Text(
+                              _tasks[index],
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeTask(index),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class NeuralNetworkPainter extends CustomPainter {
+  final double animationValue;
+  NeuralNetworkPainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.blueAccent.withOpacity(0.4)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final random = Random(42);
+    const int nodeCount = 12;
+    final List<Offset> nodes = [];
+
+    // Create moving nodes
+    for (int i = 0; i < nodeCount; i++) {
+      double dx = (size.width / nodeCount) * i +
+          sin(animationValue * 2 * pi + i) * 20;
+      double dy = size.height / 2 +
+          cos(animationValue * 2 * pi + i) * 100 * random.nextDouble();
+      nodes.add(Offset(dx, dy));
+    }
+
+    // Draw connections between nodes
+    for (int i = 0; i < nodes.length; i++) {
+      for (int j = i + 1; j < nodes.length; j++) {
+        if ((nodes[i] - nodes[j]).distance < 200) {
+          canvas.drawLine(nodes[i], nodes[j], paint);
+        }
+      }
+    }
+
+    // Draw nodes as circles
+    final nodePaint = Paint()..color = Colors.cyanAccent;
+    for (var node in nodes) {
+      canvas.drawCircle(node, 5, nodePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
